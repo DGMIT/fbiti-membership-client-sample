@@ -1,0 +1,118 @@
+unit WebViewMessageApp;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Winapi.WebView2, Winapi.ActiveX,
+  Vcl.Edge, Vcl.StdCtrls, System.JSON;
+
+type
+  TForm1 = class(TForm)
+    EdgeBrowser1: TEdgeBrowser;
+    MemoReceivedMessages: TMemo;
+    ButtonSendMessage: TButton;
+    EditMessage: TEdit;
+    EditUrl: TEdit;
+    ButtonLoad: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure EdgeBrowserDocumentCompleted(Sender: TCustomEdgeBrowser; const AUrl: string);
+    procedure EdgeBrowserWebMessageReceived(Sender: TCustomEdgeBrowser; Args: TWebMessageReceivedEventArgs);
+    procedure ButtonSendMessageClick(Sender: TObject);
+    procedure ButtonLoadClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.dfm}
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+
+  EdgeBrowser1.OnWebMessageReceived := EdgeBrowserWebMessageReceived; // 메시지 수신 이벤트 설정
+end;
+
+
+procedure TForm1.EdgeBrowserDocumentCompleted(Sender: TCustomEdgeBrowser; const AUrl: string);
+begin
+  // WebView2 로드 완료 후 WebMessageEnabled 활성화
+  EdgeBrowser1.WebMessageEnabled := True;
+
+  EdgeBrowser1.OnWebMessageReceived := EdgeBrowserWebMessageReceived; // 메시지 수신 이벤트 설정
+end;
+
+
+procedure TForm1.ButtonLoadClick(Sender: TObject);
+var
+  UserUrl: string;
+begin
+  // 사용자가 입력한 Url을 가져옵니다.
+  UserUrl := EditUrl.Text;
+
+  // WebView2 초기화 및 HTML 파일 로드
+  EdgeBrowser1.Navigate(UserUrl);
+end;
+
+procedure TForm1.ButtonSendMessageClick(Sender: TObject);
+var
+  JSONMessage, DataObject, AuthObject: TJSONObject;
+  JSONString: string;
+  UserMessage: string;
+begin
+  // JSON 객체 생성
+  JSONMessage := TJSONObject.Create;
+  DataObject := TJSONObject.Create;
+  AuthObject := TJSONObject.Create;
+
+  try
+    // 'auth' 객체 설정
+    AuthObject.AddPair('applicationKey', 'bs1vcirpp2ccbw1hjupe6ipj5aiagizu');
+    AuthObject.AddPair('passwd', '1234');
+    AuthObject.AddPair('accessType', 'CWXVMJLYMDE40001');
+
+    // 'data' 객체 설정
+    DataObject.AddPair('supportMode', 'POINT_EARN');
+    DataObject.AddPair('auth', AuthObject);  // 'auth' 객체를 data에 포함
+    DataObject.AddPair('transactionID', '1c27375780c811ef9e03');
+    DataObject.AddPair('payAmount', 7000);
+
+    // 'type' 값 설정
+    JSONMessage.AddPair('type', 'connection');
+    JSONMessage.AddPair('data', DataObject);  // 'data' 객체를 JSON 메시지에 포함
+
+    // JSON을 문자열로 변환
+    JSONString := JSONMessage.ToString;
+
+    // 문자열을 작은따옴표로 감싸서 전달
+    JSONString := '''' + JSONString + '''';
+
+    // JavaScript에서 postMessage를 사용해 Delphi 메시지 전달
+    EdgeBrowser1.ExecuteScript('window.postMessage(JSON.parse(' + JSONString + '));');
+  finally
+//    JSONMessage.Free;  // JSON 객체 메모리 해제
+//    DataObject.Free;
+//    AuthObject.Free;
+  end;
+end;
+
+
+procedure TForm1.EdgeBrowserWebMessageReceived(Sender: TCustomEdgeBrowser; Args: TWebMessageReceivedEventArgs);
+var
+  ReceivedMessage: string;
+begin
+  // Args.MessageAsString는 수신된 메시지를 JSON 문자열로 반환
+  ReceivedMessage := Args.ToString;
+
+  // 수신된 메시지를 메모 창에 표시
+  MemoReceivedMessages.Lines.Add('Received message: ' + ReceivedMessage);
+end;
+
+
+end.
