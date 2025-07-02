@@ -19,3 +19,5 @@
 2. "JSON 메세지 설정" 섹션에서 제공받은 Application Key , Password , Access Type , Request URI 를 입력한다.
 3. "JSON 메세지 선택" 섹션에서 원하는 JSON 메세지를 선택한다.
 4. 우측에 있는 버튼을 클릭하여 메세지 송신을 한다.
+
+By Rosa
